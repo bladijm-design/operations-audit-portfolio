@@ -23,7 +23,7 @@ This approach missed issues in real time, allowed problems to compound, and coul
 ```mermaid
 flowchart TD
     subgraph Data Sources
-        A1[FMC Truck Data<br/>API refresh]
+        A1[Fleet Management<br/>API refresh]
         A2[Vendor SLA<br/>Contracts]
         A3[Operational<br/>Execution Data]
         A4[Regulatory<br/>Calendar]
@@ -70,7 +70,7 @@ Unlike threshold-based systems that flag anything above/below a number, SENTINEL
 Before any control test runs, the system validates:
 ```python
 def validate_data_freshness(data_source, max_age_hours=24):
-    """Block execution if data is stale — prevents false findings."""
+    """Block execution if data is stale - prevents false findings."""
     if data_source.last_update < datetime.now() - timedelta(hours=max_age_hours):
         raise DataQualityError(
             f"Source '{data_source.name}' is {age_hours}h old. "
@@ -126,7 +126,7 @@ Every detected issue generates a finding with:
 |-----------|-----------|
 | Core engine | Python 3 |
 | Data processing | pandas, openpyxl |
-| API integration | requests (FMC API, batch querying) |
+| API integration | requests (fleet management API, batch querying) |
 | Scheduling | Windows Task Scheduler + batch scripts |
 | Output | Structured text reports, Excel dashboards |
 | Data sources | REST APIs, tab-separated files, Excel |

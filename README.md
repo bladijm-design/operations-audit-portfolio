@@ -72,6 +72,7 @@ graph LR
     G --> H[Track to Closure]
 ```
 
+
 | Metric | Result |
 |--------|--------|
 | Impact | **$104K in one week** |
@@ -95,7 +96,7 @@ graph TD
     E --> F[Narrative<br/>Generation]
     
     subgraph "Control Testing"
-        D --> G[FMC Truck Data]
+        D --> G[Fleet Truck Data]
         D --> H[Holiday Calendar]
         D --> I[Carrier SLAs]
         D --> J[Facility Config]

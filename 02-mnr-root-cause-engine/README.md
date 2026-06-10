@@ -1,4 +1,4 @@
-# MNR Root Cause Classification Engine
+# Delivery Miss Root Cause Classification Engine
 
 > Automated end-to-end audit of delivery misses across 10 data sources
 
@@ -30,14 +30,14 @@ flowchart TD
 
     subgraph "Step 1: Triage"
         B1[Filter actionable<br/>shipments]
-        B2[Exclude MOCO/XPT<br/>not in scope]
-        B3[Detect planning<br/>errors EAD>PDD]
+        B2[Exclude out-of-scope<br/>destinations]
+        B3[Detect planning<br/>errors]
         B4[Group by<br/>facility]
     end
 
     subgraph "Step 2: Data Collection"
-        C1[API Batch Query<br/>Tracking Events]
-        C2[FMC Truck<br/>Performance]
+        C1[Tracking Events<br/>API Batch Query]
+        C2[Fleet Management<br/>Truck Performance]
         C3[Holiday<br/>Calendar]
         C4[Facility<br/>Configuration]
     end
@@ -45,7 +45,7 @@ flowchart TD
     subgraph "Step 3: Classification"
         D1[Priority Cascade<br/>15 Root Causes]
         D2[Correlation<br/>Detection]
-        D3[D+1 Truck<br/>Search]
+        D3[Next-Day Truck<br/>Search]
     end
 
     subgraph Output
@@ -77,21 +77,21 @@ The engine uses a priority cascade, checking the most impactful causes first:
 
 | Priority | Root Cause | Detection Logic | Data Source |
 |----------|-----------|-----------------|-------------|
-| 1 | Infeasible Plan | EAD > PDD (system promised impossible date) | Mercury |
-| 2 | Late Slam | Slam Date > Scheduled Ship Date | OBLT API |
-| 3 | Multibox Split | ≥15% multibox with mixed package status | OBLT API |
-| 4 | Lane Closure / Holiday | Node closed on expected ship date | Calendar |
-| 5 | Loading Delay | ANY truck departed >1h late + affected shipments | FMC |
-| 6 | Truck Cancelled | ANY truck cancelled + affected shipments | FMC |
-| 7 | RLB1 Not Secured | Open bid not executed + affected shipments | FMC |
-| 8 | Carrier Delay | On-time departure, >1h late arrival | FMC |
-| 9 | Carrier Availability (D+1) | ALL trucks cancelled on ExSD + D+1 trucks found | FMC |
-| 10 | Late Sortation | Trucks on time + shipments stuck at sort center | FMC + OBLT |
-| 11 | Late Shipping | Shipments not shipped, no truck issue found | OBLT API |
-| 12 | Backlog | ≥30% shipments with ExSD > 3 days old | OBLT API |
-| 13 | Split | Both pending IB and pending OB coexist | OBLT API |
-| 14 | Infeasible Plan Split | Mix of infeasible + feasible already in transit | Mercury + OBLT |
-| 15 | Needs Manual DD | Patterns inconclusive | Fallback |
+| 1 | Infeasible Plan | Estimated arrival > promised delivery date | Planning system |
+| 2 | Late Preparation | Shipment prepared after scheduled ship date | Tracking API |
+| 3 | Multi-package Split | ≥15% multi-package orders with mixed status | Tracking API |
+| 4 | Lane Closure / Holiday | Facility closed on expected ship date | Calendar |
+| 5 | Loading Delay | ANY truck departed >1h late + affected shipments | Fleet system |
+| 6 | Truck Cancelled | ANY truck cancelled + affected shipments | Fleet system |
+| 7 | Capacity Bid Not Secured | Open bid not executed + affected shipments | Fleet system |
+| 8 | Carrier Delay | On-time departure, >1h late arrival | Fleet system |
+| 9 | Carrier Availability (D+1) | ALL trucks cancelled + next-day trucks found | Fleet system |
+| 10 | Sortation Delay | Trucks on time + shipments stuck at sort center | Fleet + Tracking |
+| 11 | Late Shipping | Shipments not shipped, no truck issue found | Tracking API |
+| 12 | Backlog | ≥30% shipments with ship date > 3 days old | Tracking API |
+| 13 | Split | Both pending inbound and pending outbound coexist | Tracking API |
+| 14 | Mixed Plan Issue | Mix of infeasible + feasible already in transit | Planning + Tracking |
+| 15 | Needs Manual Review | Patterns inconclusive | Fallback |
 
 ## Key Design Decisions
 
@@ -109,43 +109,42 @@ if any_truck_late AND shipments_affected_by_late_truck:
 ### Volume Counting
 ```python
 # Count unique SHIPMENTS, not packages
-volume = df['fulfillment_shipment_id'].nunique()
+volume = df['shipment_id'].nunique()
 # A 3-box order is 1 shipment, not 3 problems
 ```
 
-### D+1 Truck Detection
+### Next-Day Truck Detection
 When all trucks are cancelled on the expected ship date, the engine searches for next-day trucks:
 ```python
-def find_d_plus_1_trucks(lane, exsd_date, fmc_data):
+def find_next_day_trucks(lane, expected_ship_date, fleet_data):
     """
-    Search FMC for trucks on ExSD+1 that pass through the origin.
-    Uses facility_sequence column to detect milk runs.
-    Cross-references IB timestamps to verify volume moved.
+    Search fleet system for trucks on D+1 passing through the origin.
+    Uses route sequence to detect multi-stop routes.
+    Cross-references inbound timestamps to verify volume moved.
     """
-    next_day = exsd_date + timedelta(days=1)
-    candidates = fmc_data[
-        (fmc_data['facility_sequence'].str.contains(origin)) &
-        (fmc_data['departure_date'] == next_day) &
-        (fmc_data['status'] == 'COMPLETED')
+    next_day = expected_ship_date + timedelta(days=1)
+    candidates = fleet_data[
+        (fleet_data['route_sequence'].str.contains(origin)) &
+        (fleet_data['departure_date'] == next_day) &
+        (fleet_data['status'] == 'COMPLETED')
     ]
-    # Verify IB timestamps match (same-day arrival)
-    return verify_ib_crossreference(candidates, shipment_ib_times)
+    return verify_inbound_crossreference(candidates, shipment_inbound_times)
 ```
 
 ## Data Integration
 
 | Source | Purpose | Refresh |
 |--------|---------|---------|
-| Mercury CSV | Daily late-shipment report | Daily 08:30 |
-| OBLT Tracking API | Package-level scan events | Real-time (batch) |
-| FMC Truck Data | Truck schedules, departures, arrivals | Daily refresh (API) |
+| Daily delivery report | Late-shipment identification | Daily (morning) |
+| Tracking Events API | Package-level scan events | Real-time (batch) |
+| Fleet Management System | Truck schedules, departures, arrivals | Daily refresh (API) |
 | Holiday Calendar | Public holidays per country | Static + annual update |
-| Facility Config | Node types, MOCO/XPT classification | Monthly |
+| Facility Configuration | Node types, scope classification | Monthly |
 | Carrier SLAs | Expected transit times per lane | Quarterly |
 | Lane Contracts | Active routes and scheduling | Monthly |
 | Sortation Data | Sort center throughput and timing | Daily |
 | Capacity Data | Dispatch windows and cut-off times | Daily |
-| Historical MNRs | Repeat offender tracking | Rolling 4 weeks |
+| Historical Reports | Repeat offender tracking | Rolling 4 weeks |
 
 ## Results
 
@@ -177,7 +176,7 @@ Side-by-side comparison with the manual analyst across multiple days:
 | API client | requests (batch queries, 500 IDs per call) |
 | Token management | Selenium (Chrome), JWT extraction |
 | Output | Structured text narratives, Excel reports |
-| Scheduling | Batch script (run_mnr.bat) |
+| Scheduling | Batch script orchestration |
 
 ---
 

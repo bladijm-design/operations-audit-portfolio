@@ -22,16 +22,16 @@ Initial assessments by others estimated the problem was small (handful of trucks
 ### Phase 1: Hypothesis Challenge
 
 I challenged the surface-level analysis. Instead of accepting the initial estimate, I:
-- Queried the full FMC dataset across multiple lanes
-- Identified patterns across XDEV→SDEV, XDEA→CDE9, XGEB→CGE9
+- Queried the full fleet management dataset across multiple lanes
+- Identified patterns across 3 high-volume lane pairs
 - Found 205 real trucks on dummy lanes (not "a handful")
 
 ### Phase 2: Root Cause Analysis (5-Whys)
 
 ```mermaid
 graph TD
-    A[Trucks on dummy lanes] --> B[Why? Lanes exist in FMC]
-    B --> C[Why? TNC created them for testing]
+    A[Trucks on dummy lanes] --> B[Why? Lanes exist in fleet system]
+    B --> C[Why? Network Config team created them for testing]
     C --> D[Why still active? No cleanup process]
     D --> E[Why assigned trucks? Auto-scheduling doesn't distinguish]
     E --> F[Root Cause: No validation gate<br/>between test lanes and production scheduling]
@@ -39,18 +39,18 @@ graph TD
 
 ### Phase 3: Impact Quantification
 
-| Lane | Trucks Found | Cancellation Exposure |
-|------|-------------|---------------------|
-| XDEV → SDEV | 78 | €13,728 |
-| XDEA → CDE9 | 71 | €12,496 |
-| XGEB → CGE9 | 56 | €9,856 |
+| Lane Pair | Trucks Found | Cancellation Exposure |
+|-----------|-------------|---------------------|
+| Hub A → Sort Center 1 | 78 | €13,728 |
+| Hub B → Sort Center 2 | 71 | €12,496 |
+| Hub C → Sort Center 3 | 56 | €9,856 |
 | **Total** | **205** | **€36,080** |
 
 ### Phase 4: Corrective Actions
 
-1. **Immediate**: Coordinated with ROC to cancel 205 trucks as "configuration error" (penalty-free)
-2. **Short-term**: Worked with Xtra Mile to remove dummy lane assignments
-3. **Preventive**: Escalated to TNC (Transportation Network Configuration) to implement validation gates
+1. **Immediate**: Coordinated with operations control to cancel 205 trucks as "configuration error" (penalty-free)
+2. **Short-term**: Worked with capacity team to remove dummy lane assignments
+3. **Preventive**: Escalated to Network Configuration team to implement validation gates
 4. **Detective**: Built automated detection to catch future occurrences
 
 ## Results
@@ -74,8 +74,8 @@ graph TD
 | **Criteria** | Dummy lanes should have zero operational traffic |
 | **Cause** | No validation gate between test configurations and production scheduling |
 | **Effect** | €36K cancellation cost exposure, reporting confusion |
-| **Evidence** | FMC query results across 3 lane pairs |
-| **Management Action** | TNC to implement validation; Xtra Mile to clean assignments |
+| **Evidence** | Fleet management query results across 3 lane pairs |
+| **Management Action** | Network Config to implement validation; Capacity team to clean assignments |
 | **Status** | Closed (preventive system implemented) |
 
 ## Key Takeaways
@@ -89,4 +89,4 @@ graph TD
 
 *Investigated: 2024-2025*
 *Status: Resolved (preventive system in place)*
-*Impact: €30,448 savings, penalty rate 30% → 12.1%, TNC process improvement*
+*Impact: €30,448 savings, penalty rate 30% → 12.1%, configuration process improvement*

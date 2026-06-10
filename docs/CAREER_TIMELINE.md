@@ -74,7 +74,7 @@ Savings:          €50K+
 ```
 Team size:        13 specialists (5 countries)
 Audit volume:     200+ end-to-end audits/year
-Data sources:     7+ (FMC, tracking, config, carrier, calendar, capacity, compliance)
+Data sources:     7+ (fleet mgmt, tracking, config, carrier, calendar, capacity, compliance)
 Automation:       Multiple Python tools in production
 Total savings:    €20M+ cost avoidance (process lifetime)
 ```
