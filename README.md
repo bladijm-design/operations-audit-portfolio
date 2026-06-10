@@ -44,7 +44,7 @@ I build automated systems that replace manual sampling with continuous monitorin
 ├── 02-mnr-root-cause-engine/          # Automated root cause classification
 ├── 03-vendor-compliance-framework/    # Vendor SLA tracking & scoring
 ├── 04-tcap-capacity-audit/            # Transportation capacity audit process
-├── 05-nca-transition-qa/              # Automation QA & validation framework
+├── 05-automation-validation-qa/         # Automation QA & validation framework
 ├── 06-dummy-lanes-investigation/      # Hidden cost identification audit
 └── docs/
     ├── METHODOLOGY.md                 # My audit methodology & approach
@@ -165,10 +165,10 @@ graph TD
 
 ---
 
-### 5. NCA-to-STCM Transition Quality Assurance
+### 5. Manual-to-Automated Transition Quality Assurance
 > Validating automated system decisions during manual-to-auto transition
 
-[![Project](https://img.shields.io/badge/View_Project-blue?style=flat-square)](/05-nca-transition-qa/)
+[![Project](https://img.shields.io/badge/View_Project-blue?style=flat-square)](/05-automation-validation-qa/)
 
 | Metric | Result |
 |--------|--------|
